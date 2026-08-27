@@ -1,0 +1,14 @@
+# Manim scenes for the attention-residual AIGC detection talk
+# Python 3.13 (developed on 3.13.5)
+#
+# Setup:
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt
+#
+# Rendering also needs the system deps Manim relies on (macOS: `brew install
+# cairo pango ffmpeg`; Debian/Ubuntu: libcairo2-dev libpango1.0-dev ffmpeg).
+#
+#   manim -pqh architecture.py FullArchitecture
+#   manim -pqh dino_display.py DinoExperts
+
+manim==0.21.0
