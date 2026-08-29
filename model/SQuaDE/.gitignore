@@ -1,0 +1,21 @@
+# 环境
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 数据与产物 —— 体积大且可由脚本重建
+# (ckpt/ is the exception: the served demo needs these checkpoints in the
+# repo, so *.pt/*.pth are intentionally NOT ignored here anymore)
+data/
+cache/
+runs/
+*.npy
+
+# 本机专属
+.DS_Store
+.claude/settings.local.json
+.idea/
+.vscode/

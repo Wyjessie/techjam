@@ -1,7 +1,13 @@
 .venv/
+venv/
+node_modules/
+.cache/
 media/
 __pycache__/
 .DS_Store
 *.mp4
+!frontend/assets/videos/*.mp4
 *.pdf
 *.bak
+.env
+!.env.example

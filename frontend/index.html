@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jamlai — Detection Lightbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- purely decorative — cropped from a teammate's mood-board screenshots
+       (Xiaohongshu "white-background avatar" posts), sitting in the page
+       margins outside the content column. Blue/purple family, matches the
+       accent palette. Hidden on narrower viewports via CSS, see media query. -->
+  <div class="decor-layer" aria-hidden="true">
+    <img class="decor-item" src="assets/decorations/ice-cream.png" alt="" style="left:3%; top:6%; width:90px; transform:rotate(-8deg);" />
+    <img class="decor-item" src="assets/decorations/blueberry.png" alt="" style="left:6%; top:32%; width:70px; transform:rotate(10deg);" />
+    <img class="decor-item" src="assets/decorations/lilac-single.png" alt="" style="left:2%; top:56%; width:110px; transform:rotate(-5deg);" />
+    <img class="decor-item" src="assets/decorations/manta-ray.png" alt="" style="left:4%; top:82%; width:130px; transform:rotate(6deg);" />
+    <img class="decor-item" src="assets/decorations/blue-rose.png" alt="" style="right:3%; top:12%; width:100px; transform:rotate(8deg);" />
+    <img class="decor-item" src="assets/decorations/cake-slice.png" alt="" style="right:5%; top:46%; width:95px; transform:rotate(-10deg);" />
+    <img class="decor-item" src="assets/decorations/lilac-cluster.png" alt="" style="right:2%; top:73%; width:115px; transform:rotate(5deg);" />
+  </div>
+
+  <main>
+    <header class="page-header">
+      <h1>Detection Lightbox</h1>
+      <a class="header-link" href="#how-it-works">How it works ↓</a>
+    </header>
+
+    <!-- Upload, label each image, then judge -->
+    <section id="upload-section">
+      <p id="error" class="error hidden"></p>
+
+      <div id="image-grid" class="image-grid"></div>
+
+      <div id="dropzone" class="dropzone">
+        <div id="dropzone-empty">
+          <p>Drag &amp; drop images here</p>
+          <p class="or">or</p>
+          <label class="file-button">
+            Choose files
+            <input id="file-input" type="file" accept="image/png, image/jpeg, image/webp" multiple hidden />
+          </label>
+          <p class="hint">Up to 30 images. Label each, then judge.</p>
+        </div>
+      </div>
+
+      <button id="judge-btn" disabled>Start judging</button>
+
+      <div id="judge-progress" class="judge-progress hidden">
+        <div class="judge-progress-track"><div id="judge-progress-fill" class="judge-progress-fill"></div></div>
+        <p id="judge-progress-text" class="hint"></p>
+      </div>
+    </section>
+
+    <!-- post-judge: verdicts split Real <-> AI, answers hidden until revealed -->
+    <section id="spectrum-view" class="hidden">
+      <div class="spectrum-labels">
+        <span class="real">Real</span>
+        <span class="ai">AI</span>
+      </div>
+      <div class="spectrum-sides">
+        <div id="spectrum-real" class="spectrum-side real"></div>
+        <div class="spectrum-divider"></div>
+        <div id="spectrum-ai" class="spectrum-side ai"></div>
+      </div>
+      <button id="reveal-btn">Reveal answer</button>
+    </section>
+
+    <section id="judging-stats" class="stats-row hidden"></section>
+
+    <!-- explainer videos: why an adaptive detector, and how it's built -->
+    <section id="how-it-works">
+      <div class="section-head">
+        <h2>How it works</h2>
+      </div>
+      <div class="video-grid">
+        <article class="video-card">
+          <div class="video-card-body">
+            <div class="video-index">01</div>
+            <h3>Why adaptive</h3>
+            <p>Different damage, different evidence.</p>
+          </div>
+          <video controls autoplay muted loop playsinline preload="auto" src="assets/videos/why-adaptive.mp4"></video>
+        </article>
+        <article class="video-card">
+          <div class="video-card-body">
+            <div class="video-index">02</div>
+            <h3>Paradigm split</h3>
+            <p>Flatten the difference, or exploit it.</p>
+          </div>
+          <video controls autoplay muted loop playsinline preload="auto" src="assets/videos/paradigm-split.mp4"></video>
+        </article>
+        <article class="video-card">
+          <div class="video-card-body">
+            <div class="video-index">03</div>
+            <h3>Estimator</h3>
+            <p>Reads the damage, free of charge.</p>
+          </div>
+          <video controls autoplay muted loop playsinline preload="auto" src="assets/videos/estimator-detail.mp4"></video>
+        </article>
+        <article class="video-card">
+          <div class="video-card-body">
+            <div class="video-index">04</div>
+            <h3>Router</h3>
+            <p>A tiny, auditable switch.</p>
+          </div>
+          <video controls autoplay muted loop playsinline preload="auto" src="assets/videos/router-detail.mp4"></video>
+        </article>
+        <article class="video-card">
+          <div class="video-card-body">
+            <div class="video-index">05</div>
+            <h3>Full architecture</h3>
+            <p>Estimator and router, together.</p>
+          </div>
+          <video controls autoplay muted loop playsinline preload="auto" src="assets/videos/full-architecture.mp4"></video>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

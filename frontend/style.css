@@ -1,0 +1,588 @@
+/* ============================================================
+   Dark signal-blue system: solid ground, glassy card nodes, Inter
+   type, single signal-blue accent, glow shadows, pill badges.
+   ============================================================ */
+
+:root {
+  /* apple.com/sg's own palette — off-black text, Apple Gray page, their
+     exact blue, plus a small set of pastel tile backgrounds (their promo
+     grid gives every tile its own flat color: gray / cream / two blues) —
+     applied below to the how-it-works cards, the closest analog this app
+     has to that tile grid. */
+  --bg: #f5f5f7;
+  --bg-pane: #ffffff;
+  --border: rgba(0, 0, 0, 0.12);
+  --text: #1d1d1f;
+  --text-muted: #6e6e73;
+  --accent: #0071e3;
+  --accent-ink: #ffffff; /* text placed on top of an --accent fill */
+  --accent-light: rgba(0, 113, 227, 0.08);
+  --radius-card: 18px;
+  --radius-sm: 10px;
+  --radius-pill: 980px; /* Apple's own button-radius value */
+  --shadow-card: 0 10px 24px rgba(0, 0, 0, 0.1);
+  --shadow-pane: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* No red/yellow — the reference page's own promo grid is blue + grays
+     only. "Correct" is the accent blue; "incorrect" is dark graphite, not
+     a second hue. Both read as solid pill fills with white ink
+     (--accent-ink covers both); pale tint backgrounds (--good-bg /
+     --critical-bg) take dark ink instead — see each site below. */
+  --good: var(--accent);
+  --good-bg: var(--accent-light);
+  --critical: #48484a;
+  --critical-bg: rgba(72, 72, 74, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+/* ---- background decorations: fixed to the viewport (not the document),
+   so a handful stay visible in the margins regardless of scroll position
+   or page length, rather than needing to know the full document height.
+   Sit behind everything (z-index 0, painted before main in the DOM) —
+   only visible in the gutters outside the 960px content column, since
+   every card/section has its own opaque background. ---- */
+.decor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1; /* z-index:0 still painted over static content in practice — negative is the only value that reliably sits behind normal flow regardless of DOM order */
+  pointer-events: none;
+  overflow: hidden;
+}
+.decor-item {
+  position: absolute;
+  opacity: 0.9;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.14));
+  animation: decor-float 7s ease-in-out infinite;
+}
+.decor-item:nth-child(odd) { animation-duration: 8.5s; }
+.decor-item:nth-child(3n) { animation-delay: -2.5s; }
+.decor-item:nth-child(3n+1) { animation-delay: -5s; }
+@keyframes decor-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -14px; }
+}
+/* content column + its own padding needs ~1000px; below that the margins
+   are too tight for these to sit in without overlapping real content */
+@media (max-width: 1300px) {
+  .decor-layer { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .decor-item { animation: none; }
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text);
+  /* flat, not blurred — the reference page uses solid flat tile colors,
+     no ambient gradient shapes. That variety now lives on the how-it-works
+     cards instead (see .video-card:nth-child), closer to what the
+     reference's own promo grid actually does. */
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  padding: 56px 20px 80px;
+}
+
+main { width: 100%; max-width: 960px; }
+
+/* ---- header: Apple's own chrome — full-bleed, sticky, frosted glass,
+   thin hairline, small nav-weight wordmark rather than a hero headline
+   (there's no separate hero section for a giant title to live in, so the
+   nav title carries identity at a scale that can stay on screen while
+   scrolling without dominating) ---- */
+
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  box-sizing: border-box;
+  padding: 14px clamp(20px, 5vw, 56px);
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+h1 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--text);
+}
+
+h2 { font-size: 17px; margin: 0 0 14px; font-weight: 700; }
+
+.hint { color: var(--text-muted); font-size: 13px; }
+
+.header-link {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.header-link:hover { text-decoration: underline; }
+
+.hidden { display: none !important; }
+
+/* ---- dropzone ---- */
+
+.dropzone {
+  /* own top margin (not a margin-bottom on whatever precedes it) since JS
+     relocates this element between two different parent sections depending
+     on phase — see render() */
+  margin-top: 18px;
+  border: 1.5px dashed var(--border);
+  background: var(--bg-pane);
+  border-radius: var(--radius-card);
+  min-height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dropzone.dragover { border-color: var(--accent); background: var(--accent-light); }
+.dropzone p { margin: 4px 0; }
+.or { color: var(--text-muted); font-size: 13px; }
+
+.file-button {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 9px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.file-button:hover { opacity: 0.85; }
+
+/* a tint + border, not bare colored text — --critical is yellow now, and
+   yellow text is unreadable directly on --bg (1.16:1) */
+.error {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: var(--critical-bg);
+  border: 1px solid var(--critical);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* ---- per-image ground-truth picker (on every card, always editable —
+   correctness re-renders live if the label changes after judging) ---- */
+
+/* Apple-style segmented control, as liquid glass: a frosted translucent
+   track (backdrop-blur + saturate, like Control Center) instead of a flat
+   gray well; the selected segment is a tinted glass capsule — a soft top
+   sheen plus a colored glow underneath — rather than a flat color fill. */
+.truth-pick {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-pill);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 4px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-bottom: 10px;
+}
+
+.truth-pick button {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.truth-pick button:hover { color: var(--text); }
+.truth-pick button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.truth-pick button.selected { color: var(--accent-ink); }
+.truth-pick button.selected.authentic {
+  background: linear-gradient(180deg, rgba(41, 143, 235, 0.92), rgba(0, 113, 227, 0.88));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -6px 10px -6px rgba(0, 60, 130, 0.4),
+    0 3px 10px rgba(0, 113, 227, 0.35);
+}
+.truth-pick button.selected.ai_generated {
+  background: linear-gradient(180deg, rgba(94, 94, 96, 0.92), rgba(72, 72, 74, 0.88));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -6px 10px -6px rgba(0, 0, 0, 0.4),
+    0 3px 10px rgba(0, 0, 0, 0.25);
+}
+.truth-pick button.selected.unknown {
+  background: linear-gradient(180deg, rgba(140, 140, 145, 0.85), rgba(110, 110, 115, 0.8));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ---- AI model name (shown only when a card is labeled AI) ---- */
+
+.model-input {
+  display: block;
+  width: 100%;
+  padding: 6px 9px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+.model-input::placeholder { color: var(--text-muted); }
+.model-input:focus-visible { outline: none; border-color: var(--accent); }
+
+/* ---- judge button ---- */
+
+#judge-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+#judge-btn:hover:not(:disabled) { opacity: 0.85; }
+#judge-btn:active:not(:disabled) { opacity: 0.75; }
+#judge-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#judge-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.judge-progress { margin-top: 12px; }
+
+.judge-progress-track {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--border);
+  overflow: hidden;
+}
+.judge-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width 0.25s ease;
+}
+.judge-progress-text { margin-top: 6px; text-align: center; }
+
+/* ---- summary stat row (KPI tiles) ---- */
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.stat-tile {
+  background: var(--bg-pane);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-pane);
+  padding: 16px 10px;
+  text-align: center;
+}
+.stat-tile .value { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat-tile.good .value { color: var(--good); }
+.stat-tile.critical { background: var(--critical-bg); border: 1px solid var(--critical); }
+.stat-tile.critical .value { color: var(--text); }
+.stat-tile .label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---- image grid: one editable card per upload (thumbnail with live
+   operation preview, remove, truth-pick, model name, op checklist).
+   Judged results never render here — see the spectrum below. ---- */
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.result-card {
+  background: var(--bg-pane);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: card-in 0.35s ease forwards;
+}
+@keyframes card-in { to { opacity: 1; transform: translateY(0); } }
+
+.result-card .frame { position: relative; }
+.result-card .frame img { width: 100%; height: 128px; object-fit: cover; display: block; }
+
+.result-card .remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(1, 18, 24, 0.65);
+  color: white;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.result-card .body { padding: 10px 12px 14px; }
+
+.result-card .filename {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 7px;
+}
+
+/* ---- spectrum: judged images split Real <-> AI by the model's own verdict.
+   No confidence axis (this model reports ~100% on nearly everything, so a
+   position/distance encoding would carry no signal) — a loose flex-wrap per
+   side instead, thumbnails at varied sizes (js-assigned, decorative not
+   data-bearing) so a uniform grid isn't implying precision that isn't there.
+   Info reduced to one plain unbounded line, correctness hidden until reveal ---- */
+
+/* pill badges, not bare colored text — reads as a real label either way,
+   and keeps parity with the .video-index badge style */
+.spectrum-labels {
+  display: flex;
+  justify-content: space-between;
+  margin: 24px 0 10px;
+}
+.spectrum-labels span {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 99px;
+  color: var(--accent-ink);
+  backdrop-filter: blur(16px) saturate(1.8);
+  -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.spectrum-labels .real {
+  background: linear-gradient(180deg, rgba(41, 143, 235, 0.9), rgba(0, 113, 227, 0.82));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 4px 14px rgba(0, 113, 227, 0.3);
+}
+.spectrum-labels .ai {
+  background: linear-gradient(180deg, rgba(94, 94, 96, 0.9), rgba(72, 72, 74, 0.82));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+.spectrum-sides {
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  border-top: 1px dashed var(--border);
+  padding-top: 18px;
+  margin-top: 6px;
+}
+
+.spectrum-divider { width: 1px; background: var(--border); align-self: stretch; }
+
+.spectrum-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  align-content: flex-start;
+  gap: 16px 14px;
+}
+.spectrum-side.real { justify-content: flex-start; }
+.spectrum-side.ai { justify-content: flex-end; }
+
+.spectrum-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.spectrum-thumb {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-pane);
+  flex-shrink: 0;
+}
+.spectrum-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.spectrum-check {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(1, 18, 24, 0.55);
+  font-weight: 900;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.spectrum-check.revealed { opacity: 1; }
+.spectrum-check.correct { color: var(--good); }
+/* not var(--critical) here — that's dark graphite now, and this icon sits
+   on an already-dark photo scrim; dark-on-dark would vanish. White reads
+   on any photo, and the ✓/✗ shape itself still carries the distinction. */
+.spectrum-check.incorrect { color: #ffffff; }
+
+/* the one simplified info line — no border, no chip, just text. States the
+   ground truth, so it stays invisible (not display:none, to hold its
+   layout space) until "Reveal answer", same beat as the check/cross. */
+.spectrum-info {
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  text-align: center;
+  overflow-wrap: break-word;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.spectrum-info.revealed { opacity: 1; }
+
+#reveal-btn {
+  display: block;
+  margin: 22px auto 0;
+  padding: 10px 28px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+#reveal-btn:hover:not(:disabled) { opacity: 0.85; }
+#reveal-btn:disabled { opacity: 0.5; cursor: default; }
+#reveal-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+/* ---- how it works: explainer video grid ---- */
+
+/* breaks out of main's 960px column so the videos below can run
+   almost the full viewport width, independent of the tool above */
+#how-it-works {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  box-sizing: border-box;
+  padding: 32px clamp(20px, 5vw, 56px) 0;
+  margin-top: 48px;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 24px;
+}
+
+.section-head { max-width: 1600px; margin: 0 auto 32px; }
+.section-head h2 {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+/* top-to-bottom sequence, 01 -> 05, each nearly full-viewport-wide */
+.video-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding-bottom: 8px;
+}
+
+.video-card {
+  width: 100%;
+  max-width: 1000px;
+  background: var(--bg-pane);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.video-card-body { padding: 22px 26px 18px; }
+
+/* every promo tile on the reference page carries its own flat pastel —
+   gray / cream / two blues — rather than a uniform white card; this is
+   the closest analog this app has to that tile grid, so it gets the same
+   treatment. The video element keeps its own dark background regardless
+   (that's the actual render's bg, not a themeable surface). */
+.video-card:nth-child(5n+1) .video-card-body { background: #ffffff; }
+.video-card:nth-child(5n+2) .video-card-body { background: #f2ede1; }
+.video-card:nth-child(5n+3) .video-card-body { background: #eaf1fb; }
+.video-card:nth-child(5n+4) .video-card-body { background: #e8ecfb; }
+.video-card:nth-child(5n+5) .video-card-body { background: #eef4ea; }
+
+.video-card .video-index {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-bottom: 8px;
+}
+
+.video-card h3 { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.video-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+
+.video-card video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0d1117; /* matches the renders' own dark background, avoids a white flash before metadata loads */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-card, .spectrum-check { animation: none !important; transition: none !important; }
+  .result-card { opacity: 1; transform: none; }
+}
