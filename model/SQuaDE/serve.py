@@ -20,6 +20,7 @@ at a time (~1-2s/image on this Mac's MPS backend) rather than failing.
 
 import asyncio
 import io
+import os
 from pathlib import Path
 
 import torch
@@ -29,9 +30,20 @@ from PIL import Image
 from Inference import SQuaDE, confidence, pick_kernel
 from utils.preprocess import normalize
 
-CKPT_DIR = Path(__file__).parent / "ckpt"
+# 版本可用 SQUADE_CKPT 切换(v1/v2/v3),默认 v3。三版的抽头层、骨干、精度、
+# 输入窗口完全相同,只是权重不同,所以换版本只需换路径。
+CKPT_VER = os.getenv("SQUADE_CKPT", "v3")
+_NAMES = {"v1": ("vg_shallow_full", "vg_deep_full", "gate_full.pt"),
+          "v2": ("mix_shallow", "mix_deep", "mix_gate.pt"),
+          "v3": ("mix2_shallow", "mix2_deep", "mix2_gate.pt")}
+if CKPT_VER not in _NAMES:
+    raise SystemExit(f"SQUADE_CKPT={CKPT_VER!r}: expected one of {sorted(_NAMES)}")
+_SH, _DP, _GT = _NAMES[CKPT_VER]
+# v1 的三个文件平铺在 ckpt/ 根下(早于 v1/v2/v3 的目录划分),不在 ckpt/v1/
+_ROOT = Path(__file__).parent / "ckpt"
+CKPT_DIR = _ROOT if CKPT_VER == "v1" else _ROOT / CKPT_VER
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
-MODEL_VERSION = "squade-vitg"
+MODEL_VERSION = f"squade-vitg-{CKPT_VER}"
 # Matches Inference.py's own --threshold default: the fused logit is compared
 # against this, not 0.5 — the teammate's update moved the decision (and the
 # confidence readout) into logit space. See Inference.py's module docstring.
@@ -45,10 +57,22 @@ _net: SQuaDE | None = None
 @app.on_event("startup")
 def _load_model():
     global _net
+    # Only v3 ships in this repo (it is the default). v1 is still here from
+    # before; v2 has to be fetched. Fail with the fix rather than a bare
+    # FileNotFoundError three frames deep inside torch.load.
+    missing = [str(CKPT_DIR / n) for n in (_SH, _DP, _GT)
+               if not (CKPT_DIR / n).exists()]
+    if missing:
+        raise SystemExit(
+            f"SQUADE_CKPT={CKPT_VER} but these are missing:\n  "
+            + "\n  ".join(missing)
+            + f'\n\nFetch them with:\n  hf download kelvinchua/squade-vitg '
+              f'--include "{CKPT_VER}/*" --local-dir '
+              f'{Path(__file__).parent / "ckpt"}')
     _net = SQuaDE(
-        CKPT_DIR / "vg_shallow_full",
-        CKPT_DIR / "vg_deep_full",
-        CKPT_DIR / "gate_full.pt",
+        CKPT_DIR / _SH,
+        CKPT_DIR / _DP,
+        CKPT_DIR / _GT,
         "facebook/dinov2-giant",
         device=DEVICE,
     )
@@ -56,7 +80,8 @@ def _load_model():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "device": DEVICE, "model_loaded": _net is not None}
+    return {"status": "ok", "device": DEVICE, "model_loaded": _net is not None,
+            "model_version": MODEL_VERSION}
 
 
 def _load_image_from_bytes(data: bytes, name: str, size: int = 512) -> Image.Image:
