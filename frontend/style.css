@@ -396,11 +396,11 @@ h2 { font-size: 17px; margin: 0 0 14px; font-weight: 700; }
   margin: 24px 0 10px;
 }
 .spectrum-labels span {
-  font-size: 12px;
+  font-size: 17px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 4px 12px;
+  padding: 8px 20px;
   border-radius: 99px;
   color: var(--accent-ink);
   backdrop-filter: blur(16px) saturate(1.8);

@@ -26,12 +26,16 @@ import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from PIL import Image
 
-from Inference import SQuaDE, pick_kernel
+from Inference import SQuaDE, confidence, pick_kernel
 from utils.preprocess import normalize
 
 CKPT_DIR = Path(__file__).parent / "ckpt"
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
 MODEL_VERSION = "squade-vitg"
+# Matches Inference.py's own --threshold default: the fused logit is compared
+# against this, not 0.5 — the teammate's update moved the decision (and the
+# confidence readout) into logit space. See Inference.py's module docstring.
+THRESHOLD = -8.7
 
 app = FastAPI(title="SQuaDE inference server")
 _lock = asyncio.Lock()
@@ -77,12 +81,18 @@ async def predict(file: UploadFile = File(...)):
 
     async with _lock:
         loop = asyncio.get_event_loop()
-        prob, _clean, _gz, _votes = await loop.run_in_executor(None, _net.predict, [img], [name])
+        # predict() now returns raw fused/expert logits, not sigmoid'd
+        # probabilities — the threshold and confidence must both be computed
+        # in logit space (see Inference.py's module docstring: sigmoid
+        # saturates at both ends, which is exactly why this used to always
+        # come back as confidence 1.0).
+        zlog, _clean, _gz, votes = await loop.run_in_executor(None, _net.predict, [img], [name])
 
-    score = float(prob[0])
-    is_ai = score > 0.5
+    z = float(zlog[0])
+    is_ai = z > THRESHOLD
+    conf = confidence(z, votes[0], THRESHOLD)  # 0-100 reliability index
     return {
         "label": "ai_generated" if is_ai else "authentic",
-        "confidence": round(score if is_ai else 1 - score, 4),
+        "confidence": round(conf / 100, 4),
         "model_version": MODEL_VERSION,
     }

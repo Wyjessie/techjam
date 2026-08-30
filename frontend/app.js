@@ -181,12 +181,16 @@ function buildCard(img) {
 }
 
 // ---- spectrum: judged images split Real <-> AI by the model's own verdict.
-// Confidence used to also set distance-from-center, but this model reports
-// ~100% on essentially everything, so that axis no longer carries any
-// signal — every item would land on the same two points. Dropped the
-// precise beeswarm-lane positioning in favor of a loose flex-wrap per side,
-// with each thumbnail's size varied (stably, per image id) so a same-sized
-// grid isn't standing in for a signal that isn't there. ----
+// Confidence used to also set distance-from-center, but got dropped when
+// the model was returning ~100% on everything — that axis carried no
+// signal, every item landed on the same two points. The teammate's update
+// to Inference.py replaced the saturated sigmoid score with a genuine
+// margin-to-threshold reliability index (see model/SQuaDE/Inference.py's
+// confidence()), so it varies for real now — CSS `order` (below) restores
+// distance-from-center from it: high confidence sits toward the outer
+// edge of its side, low confidence sits near the divider. Layout is still
+// a loose flex-wrap, not precise beeswarm-lane positions — good enough for
+// "more confident -> more to the sides" without the lane math. ----
 
 function infoLine(img) {
   if (img.groundTruth === "authentic") return "Real";
@@ -205,9 +209,18 @@ function sizeForId(id) {
   return SPECTRUM_MIN_SIZE + (h % SPECTRUM_SIZE_RANGE);
 }
 
-function buildSpectrumItem(img) {
+function buildSpectrumItem(img, side) {
   const size = sizeForId(img.id);
   const item = el("div", "spectrum-item");
+
+  // side="real" packs flex-start (its outer edge is the page's left edge),
+  // side="ai" packs flex-end (its outer edge is the page's right edge) —
+  // see .spectrum-side in style.css. `order` moves an item earlier/later
+  // within that packing direction, so the mapping from confidence to a low
+  // vs. high order value has to flip between the two sides to both mean
+  // "toward the outer edge."
+  const conf = typeof img.result.confidence === "number" ? img.result.confidence : 0.5;
+  item.style.order = Math.round((side === "ai" ? conf : 1 - conf) * 1000);
 
   const thumb = el("div", "spectrum-thumb");
   thumb.style.width = thumb.style.height = `${size}px`;
@@ -241,8 +254,9 @@ function renderSpectrum() {
   images
     .filter((i) => i.result && !i.result.error)
     .forEach((img) => {
-      const side = img.result.label === "ai_generated" ? spectrumAi : spectrumReal;
-      side.appendChild(buildSpectrumItem(img));
+      const isAi = img.result.label === "ai_generated";
+      const side = isAi ? spectrumAi : spectrumReal;
+      side.appendChild(buildSpectrumItem(img, isAi ? "ai" : "real"));
     });
 }
 
@@ -274,8 +288,9 @@ function updateStats() {
 
   // Confirmed/Missed/accuracy would leak the answer before "Reveal answer"
   // is clicked, so those tiles wait for phase === "revealed" too. No
-  // "avg confidence" tile — this model reports ~100% on nearly everything,
-  // so it never said anything.
+  // "avg confidence" tile here — confidence is spent on spectrum layout
+  // instead (distance from the divider, see buildSpectrumItem), so a
+  // number here would just be a duplicate of what's already visible.
   const labeled = judged.filter((i) => i.groundTruth);
   const tiles = [{ value: judged.length, label: "judged" }];
   if (phase === "revealed" && labeled.length > 0) {

@@ -25,7 +25,7 @@
     resize 0.5x/0.25x 再放回   缩略图生成
     noise  σ=0.02/0.05/0.10   弱光传感器噪声
     jitter 亮度/对比度/饱和度 ±20%   滤镜、自动增强
-    crop   保留 80% 边长        头像裁剪、构图
+    crop   保留 80% 面积        头像裁剪、构图
 
 三条纪律:
 
@@ -84,7 +84,7 @@ _OURS: dict[str, list[float]] = {
     "resize": [0.5, 0.25],           # 下采样倍率,之后放回原尺寸
     "noise": [0.02, 0.05, 0.10],     # 高斯噪声 σ(0-1 尺度)
     "jitter": [0.20],                # 亮度/对比度/饱和度扰动幅度
-    "crop": [0.80],                  # 中心裁剪保留的边长比例
+    "crop": [0.80],                  # 中心裁剪保留的**面积**比例(边长比 = sqrt)
 }
 
 # 我们的档位全保留,再掺入官方 distortion_range 里**隔一档取一档**的三档。
@@ -108,7 +108,7 @@ SEVERITY = {
     "resize": lambda v: 1.0 / v,     # 倍率越小越坏
     "noise": lambda v: v,
     "jitter": lambda v: v,
-    "crop": lambda v: 1.0 - v,       # 保留越少越坏
+    "crop": lambda v: 1.0 - v,       # 保留的面积越少越坏
 }
 
 # 唯一一处主观约定:jitter 和 crop 各只有一个强度,没有「彼此之间的大小关系」可循,
@@ -185,9 +185,16 @@ def apply_jitter(img: Image.Image, amt: float, r) -> Image.Image:
     return img
 
 
-def apply_crop(img: Image.Image, keep: float, _r) -> Image.Image:
+def apply_crop(img: Image.Image, keep_area: float, _r) -> Image.Image:
+    """keep_area 是保留的**面积**比例,不是边长比例。
+
+    退化谱里写的「crop 80%」指丢掉 20% 的画面,所以边长比是 sqrt(0.8)=0.894,
+    512 -> 458。若按边长 0.8 裁,面积只剩 64%,退化强度会比规格重得多。
+    参数表里保持 0.80 这个数,与规格文档一致;换算在这里做。
+    """
+    scale = keep_area ** 0.5
     w, h = img.size
-    nw, nh = max(1, int(w * keep)), max(1, int(h * keep))
+    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
     return img.crop(((w - nw) // 2, (h - nh) // 2, (w - nw) // 2 + nw, (h - nh) // 2 + nh))
 
 
